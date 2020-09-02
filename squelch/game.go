@@ -16,7 +16,7 @@ type Game struct {
 	targetScore int
 	matchID     string
 	gameID      string
-	roll        func(diceCount int) (string, []ScoringOption)
+	roll        func(diceCount int) string
 	lastTurnID  int
 }
 
@@ -115,6 +115,7 @@ func (g *Game) Run() (GameResult, error) {
 		}
 		diceCount := 6
 		points := 0
+		turnOptionCount := 0
 		for {
 			// 1. if there are 0 dice in the pool then reset to 6 dice
 			if diceCount == 0 {
@@ -124,7 +125,9 @@ func (g *Game) Run() (GameResult, error) {
 			}
 
 			// roll the dice for the player
-			rawRoll, options := g.roll(diceCount)
+			rawRoll := g.roll(diceCount)
+			options := getDiceOptions(turnOptionCount, rawRoll)
+			turnOptionCount += len(options)
 
 			// if there are 0 options, it's a squelch, no points, turn over
 			if len(options) == 0 {
@@ -235,7 +238,7 @@ func debug(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-func rollDice(diceCount int) (string, []ScoringOption) {
+func rollDice(diceCount int) string {
 	// give a number of d6, randomly generate a string and get our list
 	// of options from the pre-generated table
 	b := make([]rune, diceCount)
@@ -248,7 +251,15 @@ func rollDice(diceCount int) (string, []ScoringOption) {
 		return b[i] < b[j]
 	})
 
-	d := string(b)
+	return string(b)
+}
 
-	return d, allOptions[d]
+func getDiceOptions(turnOptionCount int, sortedDice string) []ScoringOption {
+	//clone it and set IDs
+	opts := append([]ScoringOption{}, allOptions[sortedDice]...)
+	for i := range opts {
+		opts[i].ID = strconv.Itoa(i + turnOptionCount)
+	}
+
+	return opts
 }

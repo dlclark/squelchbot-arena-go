@@ -17,7 +17,6 @@ var (
 	//+urls
 	gpm = flag.Int("gpm", 10, "games per match")
 	ppm = flag.Int("ppm", -1, "players per match")
-	mc  = flag.Int("mc", 1, "match count")
 )
 
 func main() {
@@ -31,7 +30,7 @@ func main() {
 	}
 
 	// validate our inputs
-	if err := validateInputs(us, *gpm, *ppm, *mc); err != nil {
+	if err := validateInputs(us, *gpm, *ppm); err != nil {
 		log.Fatalf("Invalid input: %v", err)
 	}
 
@@ -43,8 +42,8 @@ func main() {
 		p[i] = squelch.NewApiPlayer(u)
 	}*/
 	p = []squelch.Player{
-		localbot.NewLocalBotPlayer(),
-		localbot.NewLocalBotPlayer(),
+		localbot.NewLocalBotPlayer("Local1"),
+		localbot.NewLocalBotPlayer("Local2"),
 	}
 
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -78,7 +77,7 @@ func main() {
 	}
 }
 
-func validateInputs(us urls, gpm, ppm, mc int) error {
+func validateInputs(us urls, gpm, ppm int) error {
 	if len(us) < 2 {
 		return errors.New("at least 2 URLs are required")
 	}

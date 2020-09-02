@@ -11,17 +11,20 @@ var _ squelch.Player = &LocalBotPlayer{}
 type LocalBotPlayer struct {
 	data map[string]*turn
 	sync *sync.Mutex
+
+	name string
 }
 
-func NewLocalBotPlayer() *LocalBotPlayer {
+func NewLocalBotPlayer(name string) *LocalBotPlayer {
 	return &LocalBotPlayer{
 		data: make(map[string]*turn),
 		sync: &sync.Mutex{},
+		name: name,
 	}
 }
 
 func (p *LocalBotPlayer) Info() (*squelch.PlayerInfo, error) {
-	return &squelch.PlayerInfo{"LocalBot"}, nil
+	return &squelch.PlayerInfo{p.name}, nil
 }
 
 func (p *LocalBotPlayer) MatchStart(matchID string, dieCount, maxPoints, gameCount, yourBotIndex int, botNames []string) error {

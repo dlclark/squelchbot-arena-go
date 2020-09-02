@@ -66,20 +66,23 @@ func (t *Tournament) Run() (*Results, error) {
 
 			// randomize our incoming player order and make a map
 			plMap := rand.Perm(len(players))
+			plNames := make([]string, len(players))
 
 			for i := 0; i < len(plMap); i++ {
 				p[i] = t.entrants[players[plMap[i]]]
+				plNames[i] = entrantNames[players[plMap[i]]]
 			}
 
-			log.Printf("%v: Start Match", players)
 			m := &match{
 				players:      p,
 				targetScore:  t.targetScore,
 				gamesInMatch: t.gamesPerMatch,
 				matchID:      ksuid.New().String(),
 			}
+
+			log.Printf("Match %v Start: Players %v", m.matchID, plNames)
 			wins, _ := m.run()
-			log.Printf("%v: Match done", players)
+			log.Printf("Match %v End: Wins %v", m.matchID, wins)
 			// player with the most wins gets the match
 			winner, highScore := 0, 0
 			for i := 0; i < len(wins); i++ {
@@ -92,15 +95,21 @@ func (t *Tournament) Run() (*Results, error) {
 				ranks.Unlock()
 
 				// find highest score for points
-				if wins[i] >= highScore {
-					winner, highScore = i, wins[i]
+				if wins[i] > highScore {
+					winner, highScore = entrantIdx, wins[i]
+				} else if wins[i] == highScore {
+					// a tie -- nobody gets points
+					winner = -1
 				}
 			}
 
-			// 1 point for the winner, 0 for losers
-			ranks.Lock()
-			ranks.r[players[winner]].Points++
-			ranks.Unlock()
+			//no points for ties
+			if winner > -1 {
+				// 1 point for the winner, 0 for losers
+				ranks.Lock()
+				ranks.r[winner].Points++
+				ranks.Unlock()
+			}
 		}(append([]int(nil), players...))
 		// we need to pass in a clone of players
 	})
@@ -175,11 +184,13 @@ func (m *match) run() (wins, errs []int) {
 		}
 		g := NewGame(m.players, m.targetScore, m.matchID, strconv.Itoa(m.nextGameNumber), m.startingPlayerIndex)
 
+		debug("Game %v/%v: Start", m.matchID, g.gameID)
 		res, err := g.Run()
 		if err != nil {
-			debug("Error during match: %v\n", err)
+			debug("Game %v/%v: End with Error by player %v:%v", m.matchID, g.gameID, res.ErrIndex, err)
 			errs[res.ErrIndex]++
 		} else {
+			debug("Game %v/%v: End with Win by player %v", m.matchID, g.gameID, res.WinnerIndex)
 			wins[res.WinnerIndex]++
 		}
 	}
